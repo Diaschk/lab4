@@ -1,5 +1,10 @@
 pipeline {
-    agent any
+    agent {
+        docker {
+            image 'maven:3.8.4-openjdk-17'
+            args '-v $HOME/.m2:/root/.m2'
+        }
+    }
     
     stages {
         stage('Checkout') {
@@ -8,25 +13,17 @@ pipeline {
             }
         }
         
-        stage('Test Java') {
+        stage('Build') {
             steps {
-                script {
-                    // Перевірка чи є Java
-                    try {
-                        sh 'java -version'
-                        echo '✅ Java is available'
-                    } catch (Exception e) {
-                        echo '❌ Java NOT found'
-                    }
-                    
-                    // Перевірка чи є Maven
-                    try {
-                        sh 'mvn -version'
-                        echo '✅ Maven is available'
-                    } catch (Exception e) {
-                        echo '❌ Maven NOT found'
-                    }
-                }
+                sh 'mvn clean compile'
+                echo 'Build successful!'
+            }
+        }
+        
+        stage('Test') {
+            steps {
+                sh 'mvn test'
+                junit 'target/surefire-reports/**/*.xml'
             }
         }
     }
