@@ -4,31 +4,33 @@ pipeline {
         maven 'Maven-3.8.4'
         jdk 'JDK-17'
     }
-    
-    // ⚡ ЭТА СТРОКА ЗАСТАВЛЯЕТ ПРОВЕРЯТЬ GITHUB
-    triggers {
-        pollSCM('H/2 * * * *')  // Каждые 2 минуты
-    }
 
     stages {
-        stage('Cleanup Workspace') {
+        stage('Download from GitHub (NO GIT)') {
             steps {
                 cleanWs()
-            }
-        }
-
-        stage('Checkout from GitHub') {
-            steps {
-                // ⚡ РАСКОММЕНТИРУЙ И ЗАМЕНИ URL НА СВОЙ
-                git branch: 'master',
-                    url: 'https://github.com/Diaschk/lab4.git'
                 
-                // Дополнительно: покажи что скачалось
                 sh '''
-                    echo "=== ФАЙЛЫ В РЕПОЗИТОРИИ ==="
+                    echo "=== СКАЧИВАЕМ АРХИВ С GITHUB ==="
+                    # Скачиваем напрямую ZIP
+                    REPO_URL="https://github.com/ТВОЙ-ЮЗЕР/ТВОЙ-РЕПОЗИТОРИЙ"
+                    
+                    # Скачиваем архив ветки main
+                    wget -O repo.zip ${REPO_URL}/archive/refs/heads/main.zip
+                    
+                    # Или для ветки master
+                    # wget -O repo.zip ${REPO_URL}/archive/refs/heads/master.zip
+                    
+                    unzip -q repo.zip
+                    
+                    # Перемещаем файлы
+                    mv *-main/* . 2>/dev/null || mv *-master/* .
+                    rm -rf *-main *-master repo.zip
+                    
+                    echo "=== ФАЙЛЫ ЗАГРУЖЕНЫ ==="
                     ls -la
-                    echo "=== ПОСЛЕДНИЙ КОММИТ ==="
-                    git log --oneline -1
+                    echo "=== ЕСТЬ POM.XML? ==="
+                    find . -name "pom.xml"
                 '''
             }
         }
@@ -51,12 +53,6 @@ pipeline {
                 sh 'mvn package -DskipTests'
                 archiveArtifacts artifacts: 'target/*.jar'
             }
-        }
-    }
-
-    post {
-        always {
-            cleanWs()
         }
     }
 }
